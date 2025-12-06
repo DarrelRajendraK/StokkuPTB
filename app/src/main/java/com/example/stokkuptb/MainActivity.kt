@@ -4,16 +4,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
-import androidx.compose.material.icons.filled.AddShoppingCart
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FilterAlt
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,13 +16,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.stokkuptb.data.AppDatabase
+import com.example.stokkuptb.data.ProductRepository
 import com.example.stokkuptb.ui.theme.StokkuAppTheme
+import com.example.stokkuptb.viewmodel.ProductViewModel
+import com.example.stokkuptb.viewmodel.ViewModelFactory
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Splash : Screen("splash", "Splash", Icons.Default.Home)
@@ -45,20 +44,38 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // 1. Inisialisasi Database
+        val db = AppDatabase.getDatabase(applicationContext)
+        val repo = ProductRepository(db.productDao())
+        val factory = ViewModelFactory(repo)
+
         setContent {
             StokkuAppTheme {
-                MainAppScreen()
+                MainAppScreen(factory)
             }
         }
     }
 }
 
+@Composable
+fun MainAppScreen(factory: ViewModelFactory? = null) {
+    StokkuAppContent(factory)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StokkuAppContent() {
+fun StokkuAppContent(factory: ViewModelFactory? = null) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    // 2. Inisialisasi ViewModel
+    val productViewModel: ProductViewModel = if (factory != null) {
+        viewModel(factory = factory)
+    } else {
+        viewModel() // Fallback untuk preview
+    }
 
     val teamNavItems = listOf(Screen.Home, Screen.Info, Screen.Add)
     val mainNavItems = listOf(Screen.Home, Screen.Search, Screen.Filter, Screen.Report)
@@ -86,47 +103,40 @@ fun StokkuAppContent() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Splash.route,
+            startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
 
             composable(Screen.Splash.route) { SplashScreen(navController) }
             composable(Screen.Home.route) { HomeScreen(navController) }
-            composable(Screen.Add.route) { AddProductScreen() }
-            composable(Screen.Info.route) { Box(Modifier.padding(innerPadding)) { Text("Halaman Info") } }
-            composable(Screen.ProductList.route) { ProductListScreen() }
 
-            composable(Screen.Report.route) { ReportScreen(navController) }
-
-            composable(Screen.Search.route) { SearchScreen(navController) }
-
-            composable(Screen.Filter.route) {
-                ManagementReportScreen(navController)
+            // Integrasi ke Layar Tambah Produk
+            composable(Screen.Add.route) {
+                AddProductScreen(navController, productViewModel)
             }
 
+            composable(Screen.Info.route) { Box(Modifier.padding(innerPadding)) { Text("Halaman Info") } }
+
+            // Integrasi ke Layar List Produk
+            composable(Screen.ProductList.route) {
+                ProductListScreen(navController, productViewModel)
+            }
+
+            composable(Screen.Report.route) { ReportScreen(navController) }
+            composable(Screen.Search.route) { SearchScreen(navController) }
+            composable(Screen.Filter.route) { ManagementReportScreen(navController) }
+
+            // Detail Product masih menggunakan AddProductScreen sebagai placeholder
             composable(Screen.DetailProduct.route) {
-                AddProductScreen()
+                AddProductScreen(navController, productViewModel)
             }
         }
     }
 }
 
 @Composable
-fun MainAppScreen() {
-    StokkuAppContent()
-}
-
-@Preview(name = "Alur Aplikasi Penuh", showSystemUi = true)
-@Composable
-fun FullAppInteractivePreview() {
-    StokkuAppTheme {
-        StokkuAppContent()
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun HomeTopBar() {
+    @OptIn(ExperimentalMaterial3Api::class)
     TopAppBar(
         title = { Text("STOKKU", fontWeight = FontWeight.Bold, color = Color.White) },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Red)
@@ -160,9 +170,9 @@ fun MainBottomBar(navController: NavController, currentRoute: String?, navItems:
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeamTopBar() {
+    @OptIn(ExperimentalMaterial3Api::class)
     TopAppBar(
         title = { Text("STOKKU", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary) },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -185,5 +195,13 @@ fun TeamBottomBar(navController: NavController, currentRoute: String?, navItems:
                 colors = NavigationBarItemDefaults.colors(indicatorColor = MaterialTheme.colorScheme.secondary)
             )
         }
+    }
+}
+
+@Preview(name = "Alur Aplikasi Penuh", showSystemUi = true)
+@Composable
+fun FullAppInteractivePreview() {
+    StokkuAppTheme {
+        MainAppScreen()
     }
 }

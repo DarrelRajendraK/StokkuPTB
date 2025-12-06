@@ -27,11 +27,12 @@ fun AddProductScreen() {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .verticalScroll(rememberScrollState()), 
+            .verticalScroll(rememberScrollState()), // Agar bisa scroll
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Placeholder Gambar Besar
         Box(
             modifier = Modifier
                 .size(150.dp)
@@ -48,6 +49,7 @@ fun AddProductScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Form "Detail Produk"
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
@@ -96,6 +98,7 @@ fun AddProductScreen() {
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Tombol Tambah
         Button(
             onClick = { /* Aksi tambah produk */ },
             modifier = Modifier
@@ -111,6 +114,7 @@ fun AddProductScreen() {
     }
 }
 
+// Composable kustom untuk OutlinedTextField
 @Composable
 fun CustomTextField(
     value: String,

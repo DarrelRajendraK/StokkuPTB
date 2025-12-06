@@ -25,7 +25,7 @@ import com.example.stokkuptb.ui.theme.StokkuAppTheme
 @Composable
 fun ProductListScreen() {
     Column(modifier = Modifier.fillMaxSize()) {
-
+        // Judul Halaman
         Text(
             text = "Daftar Produk",
             fontSize = 24.sp,
@@ -33,12 +33,13 @@ fun ProductListScreen() {
             modifier = Modifier.padding(16.dp)
         )
 
+        // Daftar Item
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
+            // Kita buat 3 item palsu untuk contoh
             items(3) {
                 ProductListItem(
                     namaProduk = "Nama Produk",
@@ -65,7 +66,7 @@ fun ProductListItem(namaProduk: String, harga: String) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
+            // Placeholder Gambar
             Box(
                 modifier = Modifier
                     .size(80.dp)
@@ -75,13 +76,14 @@ fun ProductListItem(namaProduk: String, harga: String) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(id = android.R.drawable.ic_menu_gallery),
+                    painter = painterResource(id = android.R.drawable.ic_menu_gallery), // Ganti dengan ikon gambar
                     contentDescription = "Gambar Produk",
                     modifier = Modifier.size(60.dp),
                     tint = Color.Gray
                 )
             }
 
+            // Kolom Teks (Nama & Harga)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
@@ -100,10 +102,11 @@ fun ProductListItem(namaProduk: String, harga: String) {
                 )
             }
 
+            // Kolom Ikon (Edit & Hapus)
             Column(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.height(80.dp)
+                modifier = Modifier.height(80.dp) // Samakan tinggi dengan gambar
             ) {
                 IconButton(onClick = { /* Aksi edit */ }) {
                     Icon(Icons.Outlined.Edit, contentDescription = "Edit", tint = Color.Gray)
