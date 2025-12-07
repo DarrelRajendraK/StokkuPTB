@@ -14,10 +14,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.stokkuptb.ui.theme.StokkuAppTheme
+import androidx.navigation.NavController
+import com.example.stokkuptb.viewmodel.ProductViewModel
 
 @Composable
-fun AddProductScreen() {
+fun AddProductScreen(
+    navController: NavController? = null, // Ditambahkan
+    viewModel: ProductViewModel? = null   // Ditambahkan
+) {
     var namaProduk by remember { mutableStateOf("") }
     var stok by remember { mutableStateOf("") }
     var harga by remember { mutableStateOf("") }
@@ -27,12 +31,12 @@ fun AddProductScreen() {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
-            .verticalScroll(rememberScrollState()), // Agar bisa scroll
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Placeholder Gambar Besar
+        // Placeholder Gambar Besar (Tetap sama)
         Box(
             modifier = Modifier
                 .size(150.dp)
@@ -49,7 +53,7 @@ fun AddProductScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Form "Detail Produk"
+        // Form "Detail Produk" (Tetap sama)
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
@@ -98,9 +102,21 @@ fun AddProductScreen() {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Tombol Tambah
+        // Tombol Tambah (Logic dihubungkan disini)
         Button(
-            onClick = { /* Aksi tambah produk */ },
+            onClick = {
+                if (viewModel != null && navController != null) {
+                    // Panggil fungsi simpan ke database
+                    viewModel.addProduct(
+                        name = namaProduk,
+                        category = kategori,
+                        stockStr = stok,
+                        priceStr = harga
+                    )
+                    // Kembali ke halaman sebelumnya
+                    navController.popBackStack()
+                }
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -114,7 +130,7 @@ fun AddProductScreen() {
     }
 }
 
-// Composable kustom untuk OutlinedTextField
+// CustomTextField tetap sama seperti buatan teman Anda
 @Composable
 fun CustomTextField(
     value: String,
@@ -139,7 +155,6 @@ fun CustomTextField(
 @Preview(showBackground = true)
 @Composable
 fun AddProductScreenPreview() {
-    StokkuAppTheme {
-        AddProductScreen()
-    }
+    // Preview tetap aman
+    AddProductScreen()
 }
