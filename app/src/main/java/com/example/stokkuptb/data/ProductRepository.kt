@@ -2,18 +2,27 @@ package com.example.stokkuptb.data
 
 import kotlinx.coroutines.flow.Flow
 
-class ProductRepository(private val dao: ProductDao) {
-    val allProducts: Flow<List<Product>> = dao.getAllProducts()
+class ProductRepository(
+    private val productDao: ProductDao,
+    private val categoryDao: CategoryDao
+) {
+    val allProducts: Flow<List<Product>> = productDao.getAllProducts()
 
-    suspend fun insert(product: Product) {
-        dao.insert(product)
+    suspend fun insertProduct(product: Product) {
+        productDao.insert(product)
     }
 
-    suspend fun update(product: Product) {
-        dao.update(product)
+    suspend fun deleteProduct(product: Product) {
+        productDao.delete(product)
     }
 
-    suspend fun delete(product: Product) {
-        dao.delete(product)
+    val allCategories: Flow<List<Category>> = categoryDao.getAllCategories()
+
+    suspend fun insertCategory(category: Category) {
+        categoryDao.insert(category)
+    }
+
+    suspend fun deleteCategory(category: Category) {
+        categoryDao.delete(category)
     }
 }

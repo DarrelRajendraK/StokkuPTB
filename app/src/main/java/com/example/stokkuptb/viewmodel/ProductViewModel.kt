@@ -2,6 +2,7 @@ package com.example.stokkuptb.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.stokkuptb.data.Category
 import com.example.stokkuptb.data.Product
 import com.example.stokkuptb.data.ProductRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,19 +18,19 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
         initialValue = emptyList()
     )
 
-    // Update fungsi ini untuk menerima priceStr
-    fun addProduct(name: String, category: String, stockStr: String, priceStr: String) {
+    fun addProduct(name: String, category: String, stockStr: String, priceStr: String, imageUri: String?) {
         viewModelScope.launch {
             val stock = stockStr.toIntOrNull() ?: 0
-            val price = priceStr.toDoubleOrNull() ?: 0.0 // Konversi String ke Double
+            val price = priceStr.toDoubleOrNull() ?: 0.0
 
             if (name.isNotBlank()) {
-                repository.insert(
+                repository.insertProduct(
                     Product(
                         name = name,
                         category = category,
                         stock = stock,
-                        price = price
+                        price = price,
+                        imageUri = imageUri
                     )
                 )
             }
@@ -38,7 +39,27 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
 
     fun deleteProduct(product: Product) {
         viewModelScope.launch {
-            repository.delete(product)
+            repository.deleteProduct(product)
+        }
+    }
+
+    val categories: StateFlow<List<Category>> = repository.allCategories.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.Lazily,
+        initialValue = emptyList()
+    )
+
+    fun addCategory(name: String) {
+        viewModelScope.launch {
+            if (name.isNotBlank()) {
+                repository.insertCategory(Category(name = name))
+            }
+        }
+    }
+
+    fun deleteCategory(category: Category) {
+        viewModelScope.launch {
+            repository.deleteCategory(category)
         }
     }
 }

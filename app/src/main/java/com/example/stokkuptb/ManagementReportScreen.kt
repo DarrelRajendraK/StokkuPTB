@@ -8,24 +8,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.stokkuptb.ui.theme.StokkuAppTheme
+import com.example.stokkuptb.viewmodel.ProductViewModel
+import com.example.stokkuptb.data.Category
 
 @Composable
-fun ManagementReportScreen(navController: NavController) {
+fun ManagementReportScreen(
+    navController: NavController,
+    viewModel: ProductViewModel? = null
+) {
     var newCategoryText by remember { mutableStateOf("") }
 
-    val categories = listOf("Kategori 1", "Kategori 2", "Kategori 3")
+    val categories = viewModel?.categories?.collectAsState()?.value ?: emptyList()
 
     Column(
         modifier = Modifier
@@ -34,24 +35,26 @@ fun ManagementReportScreen(navController: NavController) {
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Text(
+            text = "Kelola Kategori",
+            style = MaterialTheme.typography.titleLarge,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
 
         OutlinedTextField(
             value = newCategoryText,
             onValueChange = { newCategoryText = it },
-            placeholder = { Text("Buat Kategori") },
+            placeholder = { Text("Nama Kategori Baru") },
             trailingIcon = {
-                IconButton(onClick = { /* TODO: Aksi tambah kategori */ }) {
+                IconButton(onClick = {
+                    viewModel?.addCategory(newCategoryText)
+                    newCategoryText = ""
+                }) {
                     Icon(Icons.Default.Add, contentDescription = "Tambah Kategori")
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedContainerColor = Color(0xFFF0F0F0),
-                focusedContainerColor = Color.White,
-                unfocusedBorderColor = Color.Transparent
-            ),
-            singleLine = true
+            shape = RoundedCornerShape(8.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -59,15 +62,18 @@ fun ManagementReportScreen(navController: NavController) {
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            items(categories) { categoryName ->
-                CategoryItemCard(text = categoryName)
+            items(categories) { category ->
+                CategoryItemCard(
+                    category = category,
+                    onDelete = { viewModel?.deleteCategory(category) }
+                )
             }
         }
     }
 }
 
 @Composable
-fun CategoryItemCard(text: String) {
+fun CategoryItemCard(category: Category, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
@@ -80,36 +86,16 @@ fun CategoryItemCard(text: String) {
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
-            Icon(
-                imageVector = Icons.Default.Warning,
-                contentDescription = "Ikon Kategori",
-                tint = Color.Black
-            )
-
+            Icon(Icons.Default.Warning, contentDescription = "Ikon", tint = Color.Black)
             Spacer(modifier = Modifier.width(12.dp))
-
             Text(
-                text = text,
+                text = category.name,
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyLarge
             )
-
-            IconButton(onClick = { /* TODO: Aksi Edit */ }) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit")
-            }
-
-            IconButton(onClick = { /* TODO: Aksi Hapus */ }) {
-                Icon(Icons.Default.Delete, contentDescription = "Hapus")
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Hapus", tint = Color.Red)
             }
         }
-    }
-}
-
-@Preview(name = "Management Report Screen", showBackground = true)
-@Composable
-fun ManagementReportScreenPreview() {
-    StokkuAppTheme {
-        ManagementReportScreen(navController = rememberNavController())
     }
 }

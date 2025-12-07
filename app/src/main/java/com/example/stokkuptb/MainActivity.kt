@@ -7,7 +7,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AddShoppingCart
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FilterAlt
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -26,6 +31,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.stokkuptb.data.AppDatabase
 import com.example.stokkuptb.data.ProductRepository
 import com.example.stokkuptb.ui.theme.StokkuAppTheme
+import com.example.stokkuptb.utils.NotificationUtils
 import com.example.stokkuptb.viewmodel.ProductViewModel
 import com.example.stokkuptb.viewmodel.ViewModelFactory
 
@@ -47,8 +53,12 @@ class MainActivity : ComponentActivity() {
 
         // 1. Inisialisasi Database
         val db = AppDatabase.getDatabase(applicationContext)
-        val repo = ProductRepository(db.productDao())
+        // PERUBAHAN DISINI: Masukkan 2 DAO ke repository
+        val repo = ProductRepository(db.productDao(), db.categoryDao())
         val factory = ViewModelFactory(repo)
+
+        // 2. Buat Saluran Notifikasi
+        NotificationUtils.createNotificationChannel(this)
 
         setContent {
             StokkuAppTheme {
@@ -70,11 +80,10 @@ fun StokkuAppContent(factory: ViewModelFactory? = null) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // 2. Inisialisasi ViewModel
     val productViewModel: ProductViewModel = if (factory != null) {
         viewModel(factory = factory)
     } else {
-        viewModel() // Fallback untuk preview
+        viewModel()
     }
 
     val teamNavItems = listOf(Screen.Home, Screen.Info, Screen.Add)
@@ -106,37 +115,23 @@ fun StokkuAppContent(factory: ViewModelFactory? = null) {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-
             composable(Screen.Splash.route) { SplashScreen(navController) }
             composable(Screen.Home.route) { HomeScreen(navController) }
-
-            // Integrasi ke Layar Tambah Produk
-            composable(Screen.Add.route) {
-                AddProductScreen(navController, productViewModel)
-            }
-
+            composable(Screen.Add.route) { AddProductScreen(navController, productViewModel) }
+            composable(Screen.ProductList.route) { ProductListScreen(navController, productViewModel) }
+            composable(Screen.Report.route) { ReportScreen(navController, productViewModel) }
+            composable(Screen.Search.route) { SearchScreen(navController, productViewModel) }
             composable(Screen.Info.route) { Box(Modifier.padding(innerPadding)) { Text("Halaman Info") } }
-
-            // Integrasi ke Layar List Produk
-            composable(Screen.ProductList.route) {
-                ProductListScreen(navController, productViewModel)
-            }
-
-            composable(Screen.Report.route) { ReportScreen(navController) }
-            composable(Screen.Search.route) { SearchScreen(navController) }
-            composable(Screen.Filter.route) { ManagementReportScreen(navController) }
-
-            // Detail Product masih menggunakan AddProductScreen sebagai placeholder
-            composable(Screen.DetailProduct.route) {
-                AddProductScreen(navController, productViewModel)
-            }
+            // Halaman Management Kategori
+            composable(Screen.Filter.route) { ManagementReportScreen(navController, productViewModel) }
+            composable(Screen.DetailProduct.route) { AddProductScreen(navController, productViewModel) }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeTopBar() {
-    @OptIn(ExperimentalMaterial3Api::class)
     TopAppBar(
         title = { Text("STOKKU", fontWeight = FontWeight.Bold, color = Color.White) },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Red)
@@ -170,9 +165,9 @@ fun MainBottomBar(navController: NavController, currentRoute: String?, navItems:
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeamTopBar() {
-    @OptIn(ExperimentalMaterial3Api::class)
     TopAppBar(
         title = { Text("STOKKU", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary) },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -195,13 +190,5 @@ fun TeamBottomBar(navController: NavController, currentRoute: String?, navItems:
                 colors = NavigationBarItemDefaults.colors(indicatorColor = MaterialTheme.colorScheme.secondary)
             )
         }
-    }
-}
-
-@Preview(name = "Alur Aplikasi Penuh", showSystemUi = true)
-@Composable
-fun FullAppInteractivePreview() {
-    StokkuAppTheme {
-        MainAppScreen()
     }
 }

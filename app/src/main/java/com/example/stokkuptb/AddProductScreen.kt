@@ -1,5 +1,11 @@
 package com.example.stokkuptb
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -10,22 +16,41 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.example.stokkuptb.viewmodel.ProductViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddProductScreen(
-    navController: NavController? = null, // Ditambahkan
-    viewModel: ProductViewModel? = null   // Ditambahkan
+    navController: NavController? = null,
+    viewModel: ProductViewModel? = null
 ) {
     var namaProduk by remember { mutableStateOf("") }
     var stok by remember { mutableStateOf("") }
     var harga by remember { mutableStateOf("") }
     var kategori by remember { mutableStateOf("") }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            if (uri != null) {
+                val flag = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                context.contentResolver.takePersistableUriPermission(uri, flag)
+                selectedImageUri = uri
+            }
+        }
+    )
+
+    val categoryList = viewModel?.categories?.collectAsState()?.value ?: emptyList()
+    var expanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -36,24 +61,43 @@ fun AddProductScreen(
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Placeholder Gambar Besar (Tetap sama)
-        Box(
+        Card(
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .size(150.dp)
-                .padding(8.dp),
-            contentAlignment = Alignment.Center
+                .clickable {
+                    photoPickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+            elevation = CardDefaults.cardElevation(4.dp)
         ) {
-            Icon(
-                painter = painterResource(id = android.R.drawable.ic_menu_gallery),
-                contentDescription = "Upload Gambar",
-                modifier = Modifier.size(100.dp),
-                tint = Color.Gray
-            )
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                if (selectedImageUri != null) {
+                    AsyncImage(
+                        model = selectedImageUri,
+                        contentDescription = "Selected Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(id = android.R.drawable.ic_menu_gallery),
+                        contentDescription = "Upload Gambar",
+                        modifier = Modifier.size(60.dp),
+                        tint = Color.Gray
+                    )
+                    Text(
+                        "Pilih Foto",
+                        modifier = Modifier.padding(top = 80.dp),
+                        color = Color.Gray
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Form "Detail Produk" (Tetap sama)
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
@@ -92,28 +136,66 @@ fun AddProductScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                CustomTextField(
-                    value = kategori,
-                    onValueChange = { kategori = it },
-                    label = "Kategori"
-                )
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = !expanded }
+                    ) {
+                        OutlinedTextField(
+                            value = kategori,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Kategori") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = Color.Gray
+                            ),
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth()
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            if (categoryList.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = { Text("Belum ada kategori (Buat di menu Filter)") },
+                                    onClick = { expanded = false }
+                                )
+                            } else {
+                                categoryList.forEach { cat ->
+                                    DropdownMenuItem(
+                                        text = { Text(cat.name) },
+                                        onClick = {
+                                            kategori = cat.name
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Tombol Tambah (Logic dihubungkan disini)
         Button(
             onClick = {
                 if (viewModel != null && navController != null) {
-                    // Panggil fungsi simpan ke database
                     viewModel.addProduct(
                         name = namaProduk,
                         category = kategori,
                         stockStr = stok,
-                        priceStr = harga
+                        priceStr = harga,
+                        imageUri = selectedImageUri?.toString()
                     )
-                    // Kembali ke halaman sebelumnya
                     navController.popBackStack()
                 }
             },
@@ -125,12 +207,11 @@ fun AddProductScreen(
             ),
             shape = RoundedCornerShape(8.dp)
         ) {
-            Text(text = "Tambah", color = MaterialTheme.colorScheme.onPrimary)
+            Text(text = "Simpan", color = MaterialTheme.colorScheme.onPrimary)
         }
     }
 }
 
-// CustomTextField tetap sama seperti buatan teman Anda
 @Composable
 fun CustomTextField(
     value: String,
@@ -155,6 +236,5 @@ fun CustomTextField(
 @Preview(showBackground = true)
 @Composable
 fun AddProductScreenPreview() {
-    // Preview tetap aman
     AddProductScreen()
 }

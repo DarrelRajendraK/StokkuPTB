@@ -1,6 +1,5 @@
 package com.example.stokkuptb
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,25 +12,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.stokkuptb.ui.theme.StokkuAppTheme
+import coil.compose.AsyncImage
 import com.example.stokkuptb.viewmodel.ProductViewModel
+import com.example.stokkuptb.ui.theme.StokkuAppTheme
 
 @Composable
 fun ProductListScreen(
     navController: NavController? = null,
     viewModel: ProductViewModel? = null
 ) {
-    // Ambil data LIVE dari database
     val productList = viewModel?.products?.collectAsState()?.value ?: emptyList()
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Judul Halaman
         Text(
             text = "Daftar Produk",
             fontSize = 24.sp,
@@ -40,12 +39,13 @@ fun ProductListScreen(
         )
 
         if (productList.isEmpty()) {
-            // Tampilan jika data kosong
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
                 Text("Belum ada data produk", color = Color.Gray)
             }
         } else {
-            // Daftar Item dari Database
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
@@ -54,12 +54,10 @@ fun ProductListScreen(
                 items(productList) { product ->
                     ProductListItem(
                         namaProduk = product.name,
-                        // Format harga sederhana
                         harga = "Rp ${product.price.toLong()}",
-                        // Stok ditampilkan juga agar informatif
                         stok = product.stock,
-                        onDelete = { viewModel?.deleteProduct(product) },
-                        onEdit = { /* Nanti bisa tambahkan fitur edit disini */ }
+                        imageUri = product.imageUri, // Kirim URI ke item list
+                        onDelete = { viewModel?.deleteProduct(product) }
                     )
                 }
             }
@@ -72,8 +70,8 @@ fun ProductListItem(
     namaProduk: String,
     harga: String,
     stok: Int,
-    onDelete: () -> Unit,
-    onEdit: () -> Unit
+    imageUri: String?,
+    onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -89,22 +87,36 @@ fun ProductListItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Placeholder Gambar (Tetap sama)
-            Box(
+
+            Card(
+                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier
                     .size(80.dp)
-                    .padding(end = 16.dp),
-                contentAlignment = Alignment.Center
+                    .padding(end = 16.dp)
             ) {
-                Icon(
-                    painter = painterResource(id = android.R.drawable.ic_menu_gallery),
-                    contentDescription = "Gambar Produk",
-                    modifier = Modifier.size(60.dp),
-                    tint = Color.Gray
-                )
+                if (imageUri != null) {
+                    AsyncImage(
+                        model = imageUri,
+                        contentDescription = "Product Image",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            painter = painterResource(id = android.R.drawable.ic_menu_gallery),
+                            contentDescription = "No Image",
+                            modifier = Modifier.size(40.dp),
+                            tint = Color.Gray
+                        )
+                    }
+                }
             }
 
-            // Kolom Teks (Nama & Harga & Stok)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
@@ -128,13 +140,12 @@ fun ProductListItem(
                 )
             }
 
-            // Kolom Ikon (Edit & Hapus)
             Column(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.height(80.dp)
             ) {
-                IconButton(onClick = onEdit) {
+                IconButton(onClick = { /* Fitur Edit */ }) {
                     Icon(Icons.Outlined.Edit, contentDescription = "Edit", tint = Color.Gray)
                 }
                 IconButton(onClick = onDelete) {
