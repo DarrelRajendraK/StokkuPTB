@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.stokkuptb.data.Category
 import com.example.stokkuptb.data.Product
 import com.example.stokkuptb.data.ProductRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -18,14 +19,30 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
         initialValue = emptyList()
     )
 
+    fun getProductById(id: Long): Flow<Product> {
+        return repository.getProductById(id)
+    }
+
     fun addProduct(name: String, category: String, stockStr: String, priceStr: String, imageUri: String?) {
         viewModelScope.launch {
             val stock = stockStr.toIntOrNull() ?: 0
             val price = priceStr.toDoubleOrNull() ?: 0.0
-
             if (name.isNotBlank()) {
                 repository.insertProduct(
+                    Product(name = name, category = category, stock = stock, price = price, imageUri = imageUri)
+                )
+            }
+        }
+    }
+
+    fun updateProduct(id: Long, name: String, category: String, stockStr: String, priceStr: String, imageUri: String?) {
+        viewModelScope.launch {
+            val stock = stockStr.toIntOrNull() ?: 0
+            val price = priceStr.toDoubleOrNull() ?: 0.0
+            if (name.isNotBlank()) {
+                repository.updateProduct(
                     Product(
+                        id = id,
                         name = name,
                         category = category,
                         stock = stock,

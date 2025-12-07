@@ -8,8 +8,14 @@ interface ProductDao {
     @Query("SELECT * FROM products ORDER BY name ASC")
     fun getAllProducts(): Flow<List<Product>>
 
+    @Query("SELECT * FROM products WHERE id = :id")
+    fun getProductById(id: Long): Flow<Product>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(product: Product)
+
+    @Update
+    suspend fun update(product: Product)
 
     @Delete
     suspend fun delete(product: Product)

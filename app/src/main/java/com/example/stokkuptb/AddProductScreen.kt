@@ -30,14 +30,34 @@ import com.example.stokkuptb.viewmodel.ProductViewModel
 @Composable
 fun AddProductScreen(
     navController: NavController? = null,
-    viewModel: ProductViewModel? = null
+    viewModel: ProductViewModel? = null,
+    productId: Long = -1L
 ) {
+
     var namaProduk by remember { mutableStateOf("") }
     var stok by remember { mutableStateOf("") }
     var harga by remember { mutableStateOf("") }
     var kategori by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    if (productId != -1L && viewModel != null) {
+        val productToEdit by viewModel.getProductById(productId).collectAsState(initial = null)
+
+        LaunchedEffect(productToEdit) {
+            productToEdit?.let { product ->
+                namaProduk = product.name
+                stok = product.stock.toString()
+                harga = product.price.toLong().toString()
+                kategori = product.category
+                if (product.imageUri != null) {
+                    selectedImageUri = Uri.parse(product.imageUri)
+                }
+            }
+        }
+    }
+
     val context = LocalContext.current
+
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
@@ -60,6 +80,12 @@ fun AddProductScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = if (productId != -1L) "Edit Produk" else "Tambah Produk Baru",
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
 
         Card(
             shape = RoundedCornerShape(12.dp),
@@ -189,13 +215,24 @@ fun AddProductScreen(
         Button(
             onClick = {
                 if (viewModel != null && navController != null) {
-                    viewModel.addProduct(
-                        name = namaProduk,
-                        category = kategori,
-                        stockStr = stok,
-                        priceStr = harga,
-                        imageUri = selectedImageUri?.toString()
-                    )
+                    if (productId == -1L) {
+                        viewModel.addProduct(
+                            name = namaProduk,
+                            category = kategori,
+                            stockStr = stok,
+                            priceStr = harga,
+                            imageUri = selectedImageUri?.toString()
+                        )
+                    } else {
+                        viewModel.updateProduct(
+                            id = productId,
+                            name = namaProduk,
+                            category = kategori,
+                            stockStr = stok,
+                            priceStr = harga,
+                            imageUri = selectedImageUri?.toString()
+                        )
+                    }
                     navController.popBackStack()
                 }
             },
@@ -207,7 +244,10 @@ fun AddProductScreen(
             ),
             shape = RoundedCornerShape(8.dp)
         ) {
-            Text(text = "Simpan", color = MaterialTheme.colorScheme.onPrimary)
+            Text(
+                text = if (productId != -1L) "Update Produk" else "Simpan Produk",
+                color = MaterialTheme.colorScheme.onPrimary
+            )
         }
     }
 }

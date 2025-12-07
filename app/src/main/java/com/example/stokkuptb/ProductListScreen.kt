@@ -56,8 +56,12 @@ fun ProductListScreen(
                         namaProduk = product.name,
                         harga = "Rp ${product.price.toLong()}",
                         stok = product.stock,
-                        imageUri = product.imageUri, // Kirim URI ke item list
-                        onDelete = { viewModel?.deleteProduct(product) }
+                        imageUri = product.imageUri,
+                        onDelete = { viewModel?.deleteProduct(product) },
+                        onEdit = {
+
+                            navController?.navigate("detailProduct/${product.id}")
+                        }
                     )
                 }
             }
@@ -71,7 +75,8 @@ fun ProductListItem(
     harga: String,
     stok: Int,
     imageUri: String?,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: () -> Unit // Parameter Edit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -102,7 +107,6 @@ fun ProductListItem(
                         contentScale = ContentScale.Crop
                     )
                 } else {
-
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -145,7 +149,7 @@ fun ProductListItem(
                 verticalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.height(80.dp)
             ) {
-                IconButton(onClick = { /* Fitur Edit */ }) {
+                IconButton(onClick = onEdit) {
                     Icon(Icons.Outlined.Edit, contentDescription = "Edit", tint = Color.Gray)
                 }
                 IconButton(onClick = onDelete) {

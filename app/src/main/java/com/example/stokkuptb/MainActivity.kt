@@ -11,8 +11,8 @@ import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -20,14 +20,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.stokkuptb.data.AppDatabase
 import com.example.stokkuptb.data.ProductRepository
 import com.example.stokkuptb.ui.theme.StokkuAppTheme
@@ -39,8 +40,7 @@ sealed class Screen(val route: String, val label: String, val icon: ImageVector)
     object Splash : Screen("splash", "Splash", Icons.Default.Home)
     object Home : Screen("home", "Home", Icons.Default.Home)
     object Add : Screen("add", "Add", Icons.Default.AddShoppingCart)
-    object Info : Screen("info", "Info", Icons.Default.Info)
-    object ProductList : Screen("productList", "Produk", Icons.Default.Home)
+    object ProductList : Screen("productList", "Produk", Icons.Default.ViewList)
     object Report : Screen("report", "Laporan", Icons.AutoMirrored.Filled.Article)
     object Search : Screen("search", "Cari", Icons.Default.Search)
     object Filter : Screen("filter", "Filter", Icons.Default.FilterAlt)
@@ -51,13 +51,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 1. Inisialisasi Database
         val db = AppDatabase.getDatabase(applicationContext)
-        // PERUBAHAN DISINI: Masukkan 2 DAO ke repository
         val repo = ProductRepository(db.productDao(), db.categoryDao())
         val factory = ViewModelFactory(repo)
 
-        // 2. Buat Saluran Notifikasi
         NotificationUtils.createNotificationChannel(this)
 
         setContent {
@@ -86,26 +83,34 @@ fun StokkuAppContent(factory: ViewModelFactory? = null) {
         viewModel()
     }
 
-    val teamNavItems = listOf(Screen.Home, Screen.Info, Screen.Add)
-    val mainNavItems = listOf(Screen.Home, Screen.Search, Screen.Filter, Screen.Report)
+    val homeNavItems = listOf(Screen.Home)
+    val productNavItems = listOf(Screen.Home, Screen.ProductList, Screen.Add)
+    val reportNavItems = listOf(Screen.Home, Screen.Search, Screen.Filter, Screen.Report)
 
-    val showMainBars = mainNavItems.any { it.route == currentRoute }
-    val showTeamBars = teamNavItems.any { it.route == currentRoute } && currentRoute != Screen.Home.route ||
-            currentRoute == Screen.DetailProduct.route ||
-            currentRoute == Screen.ProductList.route
+    val isHomeScreen = currentRoute == Screen.Home.route
+
+    val isProductModule = currentRoute == Screen.ProductList.route ||
+            currentRoute == Screen.Add.route ||
+            currentRoute?.startsWith(Screen.DetailProduct.route) == true
+
+    val isReportModule = currentRoute == Screen.Report.route ||
+            currentRoute == Screen.Search.route ||
+            currentRoute == Screen.Filter.route
 
     Scaffold(
         topBar = {
             when {
-                showMainBars -> HomeTopBar()
-                showTeamBars -> TeamTopBar()
+                isHomeScreen -> HomeTopBar()
+                isReportModule -> HomeTopBar()
+                isProductModule -> TeamTopBar()
                 else -> {}
             }
         },
         bottomBar = {
             when {
-                showMainBars -> MainBottomBar(navController, currentRoute, mainNavItems)
-                showTeamBars -> TeamBottomBar(navController, currentRoute, teamNavItems)
+                isHomeScreen -> MainBottomBar(navController, currentRoute, homeNavItems)
+                isProductModule -> TeamBottomBar(navController, currentRoute, productNavItems)
+                isReportModule -> MainBottomBar(navController, currentRoute, reportNavItems)
                 else -> {}
             }
         }
@@ -117,14 +122,34 @@ fun StokkuAppContent(factory: ViewModelFactory? = null) {
         ) {
             composable(Screen.Splash.route) { SplashScreen(navController) }
             composable(Screen.Home.route) { HomeScreen(navController) }
-            composable(Screen.Add.route) { AddProductScreen(navController, productViewModel) }
-            composable(Screen.ProductList.route) { ProductListScreen(navController, productViewModel) }
-            composable(Screen.Report.route) { ReportScreen(navController, productViewModel) }
-            composable(Screen.Search.route) { SearchScreen(navController, productViewModel) }
-            composable(Screen.Info.route) { Box(Modifier.padding(innerPadding)) { Text("Halaman Info") } }
-            // Halaman Management Kategori
-            composable(Screen.Filter.route) { ManagementReportScreen(navController, productViewModel) }
-            composable(Screen.DetailProduct.route) { AddProductScreen(navController, productViewModel) }
+
+            composable(Screen.Add.route) {
+                AddProductScreen(navController = navController, viewModel = productViewModel, productId = -1L)
+            }
+
+            composable(Screen.ProductList.route) {
+                ProductListScreen(navController = navController, viewModel = productViewModel)
+            }
+
+            composable(Screen.Report.route) {
+                ReportScreen(navController = navController, viewModel = productViewModel)
+            }
+
+            composable(Screen.Search.route) {
+                SearchScreen(navController = navController, viewModel = productViewModel)
+            }
+
+            composable(Screen.Filter.route) {
+                ManagementReportScreen(navController, productViewModel)
+            }
+
+            composable(
+                route = "detailProduct/{productId}",
+                arguments = listOf(navArgument("productId") { type = NavType.LongType })
+            ) { backStackEntry ->
+                val productId = backStackEntry.arguments?.getLong("productId") ?: -1L
+                AddProductScreen(navController = navController, viewModel = productViewModel, productId = productId)
+            }
         }
     }
 }
@@ -142,23 +167,29 @@ fun HomeTopBar() {
 fun MainBottomBar(navController: NavController, currentRoute: String?, navItems: List<Screen>) {
     NavigationBar(containerColor = Color.Red) {
         navItems.forEach { screen ->
+
             val isSelected = currentRoute == screen.route
+
             NavigationBarItem(
+                label = { Text(screen.label) },
+                alwaysShowLabel = true,
                 icon = { Icon(screen.icon, contentDescription = screen.label, tint = Color.White) },
                 selected = isSelected,
                 onClick = {
-                    navController.navigate(screen.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
+                    if (screen.route == Screen.Home.route && currentRoute == Screen.Home.route) {
+                    } else {
+                        navController.navigate(screen.route) {
+                            popUpTo(navController.graph.findStartDestination().id)
+                            launchSingleTop = true
                         }
-                        launchSingleTop = true
-                        restoreState = true
                     }
                 },
                 colors = NavigationBarItemDefaults.colors(
                     indicatorColor = Color.Red,
                     selectedIconColor = Color.White,
-                    unselectedIconColor = Color.White.copy(alpha = 0.7f)
+                    unselectedIconColor = Color.White.copy(alpha = 0.7f),
+                    selectedTextColor = Color.White,
+                    unselectedTextColor = Color.White.copy(alpha = 0.7f)
                 )
             )
         }
@@ -178,16 +209,25 @@ fun TeamTopBar() {
 fun TeamBottomBar(navController: NavController, currentRoute: String?, navItems: List<Screen>) {
     NavigationBar(containerColor = MaterialTheme.colorScheme.primary) {
         navItems.forEach { screen ->
+            val isSelected = currentRoute == screen.route
             NavigationBarItem(
+                label = { Text(screen.label) },
+                alwaysShowLabel = true,
                 icon = { Icon(screen.icon, contentDescription = screen.label, tint = MaterialTheme.colorScheme.onPrimary) },
-                selected = currentRoute == screen.route,
+                selected = isSelected,
                 onClick = {
                     navController.navigate(screen.route) {
                         popUpTo(navController.graph.findStartDestination().id)
                         launchSingleTop = true
                     }
                 },
-                colors = NavigationBarItemDefaults.colors(indicatorColor = MaterialTheme.colorScheme.secondary)
+                colors = NavigationBarItemDefaults.colors(
+                    indicatorColor = MaterialTheme.colorScheme.secondary,
+                    selectedIconColor = MaterialTheme.colorScheme.onSecondary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                    selectedTextColor = MaterialTheme.colorScheme.onPrimary,
+                    unselectedTextColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                )
             )
         }
     }
