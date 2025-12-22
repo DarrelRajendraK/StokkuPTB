@@ -5,8 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountTree
-import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Lan
 import androidx.compose.material3.*
@@ -25,11 +23,10 @@ import com.example.stokkuptb.ui.theme.StokkuAppTheme
 
 @Composable
 fun HomeScreen(navController: NavController) {
-
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
@@ -42,17 +39,13 @@ fun HomeScreen(navController: NavController) {
             MenuButton(
                 icon = Icons.Default.Lan,
                 text = "Produk",
-                onClick = {
-                    navController.navigate(Screen.ProductList.route)
-                }
+                onClick = { navController.navigate(Screen.ProductList.route) }
             )
 
             MenuButton(
                 icon = Icons.Default.Article,
                 text = "Laporan",
-                onClick = {
-                    navController.navigate(Screen.Report.route)
-                }
+                onClick = { navController.navigate(Screen.Report.route) }
             )
         }
     }
@@ -65,9 +58,7 @@ fun MenuButton(icon: ImageVector, text: String, onClick: () -> Unit) {
             .size(140.dp)
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Red
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color.Red),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(
@@ -75,27 +66,15 @@ fun MenuButton(icon: ImageVector, text: String, onClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = Color.Black,
-                modifier = Modifier.size(64.dp)
-            )
+            Icon(imageVector = icon, contentDescription = text, tint = Color.White, modifier = Modifier.size(64.dp))
             Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = text,
-                color = Color.Black,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
+            Text(text = text, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }
 }
 
-@Preview(name = "Konten HomeScreen", showBackground = true)
+@Preview(name = "HomeScreen", showBackground = true)
 @Composable
 fun HomeScreenPreview() {
-    StokkuAppTheme {
-        HomeScreen(navController = rememberNavController())
-    }
+    StokkuAppTheme { HomeScreen(navController = rememberNavController()) }
 }

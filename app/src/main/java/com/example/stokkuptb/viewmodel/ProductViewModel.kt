@@ -41,14 +41,7 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
             val price = priceStr.toDoubleOrNull() ?: 0.0
             if (name.isNotBlank()) {
                 repository.updateProduct(
-                    Product(
-                        id = id,
-                        name = name,
-                        category = category,
-                        stock = stock,
-                        price = price,
-                        imageUri = imageUri
-                    )
+                    Product(id = id, name = name, category = category, stock = stock, price = price, imageUri = imageUri)
                 )
             }
         }
@@ -70,6 +63,14 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
         viewModelScope.launch {
             if (name.isNotBlank()) {
                 repository.insertCategory(Category(name = name))
+            }
+        }
+    }
+
+    fun updateCategory(category: Category, newName: String) {
+        viewModelScope.launch {
+            if (newName.isNotBlank()) {
+                repository.updateCategory(category.copy(name = newName))
             }
         }
     }
