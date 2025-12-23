@@ -22,4 +22,10 @@ interface ProductDao {
 
     @Query("UPDATE products SET category = :newName WHERE category = :oldName")
     suspend fun updateCategoryName(oldName: String, newName: String)
+
+    @Query("DELETE FROM products")
+    suspend fun deleteAllForSync()
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(products: List<Product>)
 }

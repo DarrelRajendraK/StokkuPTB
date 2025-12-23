@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.example.stokkuptb.utils.ImageUtils
 import com.example.stokkuptb.viewmodel.ProductViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,7 +34,6 @@ fun AddProductScreen(
     viewModel: ProductViewModel? = null,
     productId: Long = -1L
 ) {
-
     var namaProduk by remember { mutableStateOf("") }
     var stok by remember { mutableStateOf("") }
     var harga by remember { mutableStateOf("") }
@@ -42,22 +42,18 @@ fun AddProductScreen(
 
     if (productId != -1L && viewModel != null) {
         val productToEdit by viewModel.getProductById(productId).collectAsState(initial = null)
-
         LaunchedEffect(productToEdit) {
             productToEdit?.let { product ->
                 namaProduk = product.name
                 stok = product.stock.toString()
                 harga = product.price.toLong().toString()
                 kategori = product.category
-                if (product.imageUri != null) {
-                    selectedImageUri = Uri.parse(product.imageUri)
-                }
+                if (product.imageUri != null) selectedImageUri = Uri.parse(product.imageUri)
             }
         }
     }
 
     val context = LocalContext.current
-
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
@@ -71,6 +67,8 @@ fun AddProductScreen(
 
     val categoryList = viewModel?.categories?.collectAsState()?.value ?: emptyList()
     var expanded by remember { mutableStateOf(false) }
+
+    var isLoading by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -91,11 +89,7 @@ fun AddProductScreen(
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .size(150.dp)
-                .clickable {
-                    photoPickerLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
+                .clickable { photoPickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
@@ -109,14 +103,9 @@ fun AddProductScreen(
                 } else {
                     Icon(
                         painter = painterResource(id = android.R.drawable.ic_menu_gallery),
-                        contentDescription = "Upload Gambar",
+                        contentDescription = "Upload",
                         modifier = Modifier.size(60.dp),
                         tint = Color.Gray
-                    )
-                    Text(
-                        "Pilih Foto",
-                        modifier = Modifier.padding(top = 80.dp),
-                        color = Color.Gray
                     )
                 }
             }
@@ -128,47 +117,18 @@ fun AddProductScreen(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
             elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            )
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Detail Produk",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                CustomTextField(
-                    value = namaProduk,
-                    onValueChange = { namaProduk = it },
-                    label = "Nama Produk"
-                )
+                CustomTextField(value = namaProduk, onValueChange = { namaProduk = it }, label = "Nama Produk")
+                Spacer(modifier = Modifier.height(8.dp))
+                CustomTextField(value = stok, onValueChange = { stok = it }, label = "Stok", keyboardType = KeyboardType.Number)
+                Spacer(modifier = Modifier.height(8.dp))
+                CustomTextField(value = harga, onValueChange = { harga = it }, label = "Harga", keyboardType = KeyboardType.Number)
                 Spacer(modifier = Modifier.height(8.dp))
 
-                CustomTextField(
-                    value = stok,
-                    onValueChange = { stok = it },
-                    label = "Stok",
-                    keyboardType = KeyboardType.Number
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                CustomTextField(
-                    value = harga,
-                    onValueChange = { harga = it },
-                    label = "Harga",
-                    keyboardType = KeyboardType.Number
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Box(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = !expanded }
-                    ) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
                         OutlinedTextField(
                             value = kategori,
                             onValueChange = {},
@@ -179,30 +139,14 @@ fun AddProductScreen(
                                 focusedBorderColor = MaterialTheme.colorScheme.primary,
                                 unfocusedBorderColor = Color.Gray
                             ),
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth()
+                            modifier = Modifier.menuAnchor().fillMaxWidth()
                         )
-
-                        ExposedDropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            if (categoryList.isEmpty()) {
+                        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                            categoryList.forEach { cat ->
                                 DropdownMenuItem(
-                                    text = { Text("Belum ada kategori (Buat di menu Filter)") },
-                                    onClick = { expanded = false }
+                                    text = { Text(cat.name) },
+                                    onClick = { kategori = cat.name; expanded = false }
                                 )
-                            } else {
-                                categoryList.forEach { cat ->
-                                    DropdownMenuItem(
-                                        text = { Text(cat.name) },
-                                        onClick = {
-                                            kategori = cat.name
-                                            expanded = false
-                                        }
-                                    )
-                                }
                             }
                         }
                     }
@@ -214,14 +158,20 @@ fun AddProductScreen(
 
         Button(
             onClick = {
-                if (viewModel != null && navController != null) {
+                if (viewModel != null && navController != null && !isLoading) {
+                    isLoading = true
+
                     if (productId == -1L) {
+
+                        val base64Image = ImageUtils.uriToBase64(context, selectedImageUri)
+
                         viewModel.addProduct(
                             name = namaProduk,
                             category = kategori,
                             stockStr = stok,
                             priceStr = harga,
-                            imageUri = selectedImageUri?.toString()
+                            imageUri = selectedImageUri?.toString(),
+                            imageBase64 = base64Image
                         )
                     } else {
                         viewModel.updateProduct(
@@ -236,40 +186,26 @@ fun AddProductScreen(
                     navController.popBackStack()
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            ),
-            shape = RoundedCornerShape(8.dp)
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+            shape = RoundedCornerShape(8.dp),
+            enabled = !isLoading
         ) {
-            Text(
-                text = if (productId != -1L) "Update Produk" else "Simpan Produk",
-                color = MaterialTheme.colorScheme.onPrimary
-            )
+            if (isLoading) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+            } else {
+                Text(text = if (productId != -1L) "Update Produk" else "Simpan ke Cloud", color = MaterialTheme.colorScheme.onPrimary)
+            }
         }
     }
 }
 
 @Composable
-fun CustomTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    keyboardType: KeyboardType = KeyboardType.Text
-) {
+fun CustomTextField(value: String, onValueChange: (String) -> Unit, label: String, keyboardType: KeyboardType = KeyboardType.Text) {
     OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        modifier = Modifier.fillMaxWidth(),
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        singleLine = true,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = Color.Gray
-        )
+        value = value, onValueChange = onValueChange, label = { Text(label) },
+        modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = keyboardType), singleLine = true,
+        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = Color.Gray)
     )
 }
 

@@ -1,5 +1,6 @@
 package com.example.stokkuptb
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,6 +34,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.stokkuptb.data.AppDatabase
 import com.example.stokkuptb.data.ProductRepository
+import com.example.stokkuptb.data.RetrofitClient
 import com.example.stokkuptb.ui.theme.StokkuAppTheme
 import com.example.stokkuptb.utils.NotificationUtils
 import com.example.stokkuptb.viewmodel.ProductViewModel
@@ -55,7 +57,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val db = AppDatabase.getDatabase(applicationContext)
-        val repo = ProductRepository(db.productDao(), db.categoryDao())
+
+        val repo = ProductRepository(
+            db.productDao(),
+            db.categoryDao(),
+            RetrofitClient.instance
+        )
+
         val factory = ViewModelFactory(repo)
 
         NotificationUtils.createNotificationChannel(this)
@@ -140,9 +148,7 @@ fun StokkuAppContent(factory: ViewModelFactory? = null, startDestinationExtra: S
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Splash.route) { SplashScreen(navController) }
-
             composable(Screen.Login.route) { LoginScreen(navController) }
-
             composable(Screen.Home.route) { HomeScreen(navController) }
 
             composable(Screen.Add.route) {

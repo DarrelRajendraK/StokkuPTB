@@ -18,16 +18,20 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
         initialValue = emptyList()
     )
 
+    init { syncData() }
+
+    fun syncData() {
+        viewModelScope.launch { repository.refreshProductsFromCloud() }
+    }
+
     fun getProductById(id: Long) = repository.getProductById(id)
 
-    fun addProduct(name: String, category: String, stockStr: String, priceStr: String, imageUri: String?) {
+    fun addProduct(name: String, category: String, stockStr: String, priceStr: String, imageUri: String?, imageBase64: String) {
         viewModelScope.launch {
             val stock = stockStr.toIntOrNull() ?: 0
             val price = priceStr.toDoubleOrNull() ?: 0.0
             if (name.isNotBlank()) {
-                repository.insertProduct(
-                    Product(name = name, category = category, stock = stock, price = price, imageUri = imageUri)
-                )
+                repository.addProductToCloud(name, category, stock, price, imageBase64)
             }
         }
     }
@@ -36,33 +40,31 @@ class ProductViewModel(private val repository: ProductRepository) : ViewModel() 
         viewModelScope.launch {
             val stock = stockStr.toIntOrNull() ?: 0
             val price = priceStr.toDoubleOrNull() ?: 0.0
-            if (name.isNotBlank()) {
-                repository.updateProduct(
-                    Product(id = id, name = name, category = category, stock = stock, price = price, imageUri = imageUri)
-                )
-            }
+
+            repository.updateProductInCloud(
+                Product(id, name, category, stock, price, imageUri),
+                ""
+            )
         }
     }
 
-    fun deleteProduct(product: Product) = viewModelScope.launch { repository.deleteProduct(product) }
+    fun deleteProduct(product: Product) {
+        viewModelScope.launch {
+            repository.deleteProductFromCloud(product)
+        }
+    }
 
-    val categories: StateFlow<List<Category>> = repository.allCategories.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.Lazily,
-        initialValue = emptyList()
-    )
+    val categories = repository.allCategories.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun addCategory(name: String) = viewModelScope.launch {
         if (name.isNotBlank()) repository.insertCategory(Category(name = name))
     }
 
-    fun updateCategory(category: Category, newName: String) {
-        viewModelScope.launch {
-            if (newName.isNotBlank()) {
-                repository.updateCategoryWithProducts(category, newName)
-            }
-        }
+    fun updateCategory(category: Category, newName: String) = viewModelScope.launch {
+        repository.updateCategoryWithProducts(category, newName)
     }
 
-    fun deleteCategory(category: Category) = viewModelScope.launch { repository.deleteCategory(category) }
+    fun deleteCategory(category: Category) = viewModelScope.launch {
+        repository.deleteCategory(category)
+    }
 }
