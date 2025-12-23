@@ -19,10 +19,9 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(navController: NavController) {
-
     LaunchedEffect(Unit) {
         delay(3000)
-        navController.navigate(Screen.Home.route) {
+        navController.navigate(Screen.Login.route) {
             popUpTo(Screen.Splash.route) { inclusive = true }
         }
     }
@@ -33,7 +32,6 @@ fun SplashScreen(navController: NavController) {
             .background(Color.Red),
         contentAlignment = Alignment.Center
     ) {
-
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center

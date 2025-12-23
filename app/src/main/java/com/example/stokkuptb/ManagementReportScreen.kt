@@ -33,6 +33,9 @@ fun ManagementReportScreen(
     var showEditDialog by remember { mutableStateOf(false) }
     var categoryToEdit by remember { mutableStateOf<Category?>(null) }
 
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var categoryToDelete by remember { mutableStateOf<Category?>(null) }
+
     if (showEditDialog && categoryToEdit != null) {
         EditCategoryDialog(
             category = categoryToEdit!!,
@@ -40,6 +43,34 @@ fun ManagementReportScreen(
             onConfirm = { newName ->
                 viewModel?.updateCategory(categoryToEdit!!, newName)
                 showEditDialog = false
+            }
+        )
+    }
+
+    if (showDeleteDialog && categoryToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Hapus Kategori") },
+            text = {
+                Text("Apakah Anda yakin ingin menghapus kategori \"${categoryToDelete?.name}\"?")
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel?.deleteCategory(categoryToDelete!!)
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Hapus", color = MaterialTheme.colorScheme.onError)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Batal")
+                }
             }
         )
     }
@@ -101,7 +132,10 @@ fun ManagementReportScreen(
                         categoryToEdit = category
                         showEditDialog = true
                     },
-                    onDelete = { viewModel?.deleteCategory(category) }
+                    onDelete = {
+                        categoryToDelete = category
+                        showDeleteDialog = true
+                    }
                 )
             }
         }

@@ -19,4 +19,7 @@ interface ProductDao {
 
     @Delete
     suspend fun delete(product: Product)
+
+    @Query("UPDATE products SET category = :newName WHERE category = :oldName")
+    suspend fun updateCategoryName(oldName: String, newName: String)
 }

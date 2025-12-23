@@ -1,6 +1,5 @@
 package com.example.stokkuptb
 
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -12,6 +11,7 @@ import androidx.compose.material.icons.filled.AddShoppingCart
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.*
@@ -40,6 +40,7 @@ import com.example.stokkuptb.viewmodel.ViewModelFactory
 
 sealed class Screen(val route: String, val label: String, val icon: ImageVector) {
     object Splash : Screen("splash", "Splash", Icons.Default.Home)
+    object Login : Screen("login", "Login", Icons.Default.Login)
     object Home : Screen("home", "Home", Icons.Default.Home)
     object Add : Screen("add", "Add", Icons.Default.AddShoppingCart)
     object ProductList : Screen("productList", "Produk", Icons.Default.ViewList)
@@ -100,28 +101,36 @@ fun StokkuAppContent(factory: ViewModelFactory? = null, startDestinationExtra: S
     val reportNavItems = listOf(Screen.Home, Screen.Search, Screen.Management, Screen.Report)
 
     val isHomeScreen = currentRoute == Screen.Home.route
+
     val isProductModule = currentRoute == Screen.ProductList.route ||
             currentRoute == Screen.Add.route ||
             currentRoute?.startsWith(Screen.DetailProduct.route) == true
+
     val isReportModule = currentRoute == Screen.Report.route ||
             currentRoute == Screen.Search.route ||
             currentRoute == Screen.Management.route
 
+    val showBars = currentRoute != Screen.Splash.route && currentRoute != Screen.Login.route
+
     Scaffold(
         topBar = {
-            when {
-                isHomeScreen -> HomeTopBar()
-                isReportModule -> HomeTopBar()
-                isProductModule -> TeamTopBar()
-                else -> {}
+            if (showBars) {
+                when {
+                    isHomeScreen -> HomeTopBar()
+                    isReportModule -> HomeTopBar()
+                    isProductModule -> TeamTopBar()
+                    else -> {}
+                }
             }
         },
         bottomBar = {
-            when {
-                isHomeScreen -> MainBottomBar(navController, currentRoute, homeNavItems)
-                isProductModule -> TeamBottomBar(navController, currentRoute, productNavItems)
-                isReportModule -> MainBottomBar(navController, currentRoute, reportNavItems)
-                else -> {}
+            if (showBars) {
+                when {
+                    isHomeScreen -> MainBottomBar(navController, currentRoute, homeNavItems)
+                    isProductModule -> TeamBottomBar(navController, currentRoute, productNavItems)
+                    isReportModule -> MainBottomBar(navController, currentRoute, reportNavItems)
+                    else -> {}
+                }
             }
         }
     ) { innerPadding ->
@@ -131,6 +140,9 @@ fun StokkuAppContent(factory: ViewModelFactory? = null, startDestinationExtra: S
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Splash.route) { SplashScreen(navController) }
+
+            composable(Screen.Login.route) { LoginScreen(navController) }
+
             composable(Screen.Home.route) { HomeScreen(navController) }
 
             composable(Screen.Add.route) {
